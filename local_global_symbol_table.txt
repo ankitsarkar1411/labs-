@@ -1,0 +1,91 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_TOKENS 100
+#define MAX_LENGTH 50
+
+typedef struct {
+    char name[MAX_LENGTH];
+    char type[MAX_LENGTH];
+    char scope[MAX_LENGTH]; // "global" or function name
+} Token;
+
+Token globalTable[MAX_TOKENS], localTable[MAX_TOKENS];
+int globalIndex = 0, localIndex = 0;
+char currentScope[MAX_LENGTH] = "global";
+
+void addToken(Token table[], int *index, char *name, char *type, char *scope) {
+    strcpy(table[*index].name, name);
+    strcpy(table[*index].type, type);
+    strcpy(table[*index].scope, scope);
+    (*index)++;
+}
+
+void printTable(const char *title, Token table[], int size) {
+    printf("\n%s:\n", title);
+    printf("------------------------------------\n");
+    printf("| Name       | Type      | Scope   |\n");
+    printf("------------------------------------\n");
+    for (int i = 0; i < size; i++) {
+        printf("| %-10s | %-9s | %-7s |\n", table[i].name, table[i].type, table[i].scope);
+    }
+    printf("------------------------------------\n");
+}
+
+int isKeyword(char *str) {
+    const char *keywords[] = {"int", "float", "char", "return", "if", "else", "void", "while", "for", "main"};
+    for (int i = 0; i < 10; i++) if (strcmp(str, keywords[i]) == 0) return 1;
+    return 0;
+}
+
+void getNextToken(FILE *file) {
+    char ch, buffer[MAX_LENGTH];
+    int i = 0;
+
+    while ((ch = fgetc(file)) != EOF) {
+        if (isalpha(ch)) {  // Identifier or Keyword
+            buffer[i++] = ch;
+            while (isalnum(ch = fgetc(file))) buffer[i++] = ch;
+            buffer[i] = '\0'; ungetc(ch, file);
+
+            if (isKeyword(buffer)) addToken(globalTable, &globalIndex, buffer, "KEYWORD", currentScope);
+            else addToken(currentScope[0] == 'g' ? globalTable : localTable, currentScope[0] == 'g' ? &globalIndex : &localIndex, buffer, "IDENTIFIER", currentScope);
+
+            i = 0;
+        } else if (isdigit(ch)) {  // Number
+            buffer[i++] = ch;
+            while (isdigit(ch = fgetc(file))) buffer[i++] = ch;
+            buffer[i] = '\0'; ungetc(ch, file);
+
+            addToken(currentScope[0] == 'g' ? globalTable : localTable, currentScope[0] == 'g' ? &globalIndex : &localIndex, buffer, "NUM_CONSTANT", currentScope);
+            i = 0;
+        } else if (ch == '{') strcpy(currentScope, "local");  // Entering local scope
+        else if (ch == '}') strcpy(currentScope, "global");  // Exiting to global scope
+    }
+}
+
+int main() {
+    FILE *file = fopen("test.c", "r");
+    if (!file) {
+        printf("Error opening file.\n");
+        return 1;
+    }
+
+    getNextToken(file);
+    fclose(file);
+
+    printTable("Global Symbol Table", globalTable, globalIndex);
+    printTable("Local Symbol Table", localTable, localIndex);
+
+    return 0;
+}
+
+
+test.c
+
+int x = 10;
+
+void func() {
+    int y = 20;
+}

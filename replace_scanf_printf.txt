@@ -1,0 +1,37 @@
+%{
+#include <stdio.h>
+int scanf_count = 0, printf_count = 0;
+%}
+
+%%
+"scanf"  { printf("READ"); scanf_count++; }  
+"printf" { printf("WRITE"); printf_count++; }  
+.|\n     { putchar(yytext[0]); }  
+%%
+
+int main() {
+    printf("Enter C code (Ctrl+D to end input):\n");
+    yylex();
+    printf("\nScanf Count: %d\nPrintf Count: %d\n", scanf_count, printf_count);
+    return 0;
+}
+
+int yywrap() { return 1; }
+
+run
+
+flex replace_io.l
+gcc lex.yy.c -o replace_io -lfl
+./replace_io < input.c
+
+
+input.c
+
+#include<stdio.h>
+int main(){
+int x;
+printf("Enter a number :");
+scanf("%d",&x);
+printf("You entered %d",x);
+return 0;
+}

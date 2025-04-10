@@ -1,0 +1,208 @@
+grammar 1 s->a|>|(T) 
+          t->t,s|s
+
+#include <stdio.h>
+#include <stdlib.h>
+
+const char *input;
+char lookahead;
+
+void nextToken() {
+    lookahead = *input++;
+}
+
+void match(char expected) {
+    if (lookahead == expected)
+        nextToken();
+    else {
+        printf("Syntax Error!\n");
+        exit(1);
+    }
+}
+
+void S();
+void T();
+
+void S() {
+    if (lookahead == 'a' || lookahead == '>') {
+        nextToken();
+    } else if (lookahead == '(') {
+        match('(');
+        T();
+        match(')');
+    } else {
+        printf("Syntax Error in S!\n");
+        exit(1);
+    }
+}
+
+void T() {
+    S();
+    if (lookahead == ',') {
+        match(',');
+        T();
+    }
+}
+
+void parseGrammar1(const char *str) {
+    input = str;
+    nextToken();
+    S();
+    if (lookahead == '\0')
+        printf("Parsing successful!\n");
+    else
+        printf("Syntax Error!\n");
+}
+
+int main() {
+    parseGrammar1("(a,>)");
+    return 0;
+}
+
+grammar 2 s->uvw
+          u->(s)|asb|d
+          v->av|e
+          w->cw|e
+
+#include <stdio.h>
+#include <stdlib.h>
+
+const char *input;
+char lookahead;
+
+void nextToken() {
+    lookahead = *input++;
+}
+
+void match(char expected) {
+    if (lookahead == expected)
+        nextToken();
+    else {
+        printf("Syntax Error!\n");
+        exit(1);
+    }
+}
+
+void S();
+void U();
+void V();
+void W();
+
+void S() {
+    U();
+    V();
+    W();
+}
+
+void U() {
+    if (lookahead == '(') {
+        match('(');
+        S();
+        match(')');
+    } else if (lookahead == 'a') {
+        match('a');
+        S();
+        match('b');
+    } else if (lookahead == 'd') {
+        match('d');
+    } else {
+        printf("Syntax Error in U!\n");
+        exit(1);
+    }
+}
+
+void V() {
+    if (lookahead == 'a') {
+        match('a');
+        V();
+    }
+}
+
+void W() {
+    if (lookahead == 'c') {
+        match('c');
+        W();
+    }
+}
+
+void parseGrammar2(const char *str) {
+    input = str;
+    nextToken();
+    S();
+    if (lookahead == '\0')
+        printf("Parsing successful!\n");
+    else
+        printf("Syntax Error!\n");
+}
+
+int main() {
+    parseGrammar2("a(db)c");  // Example input
+    return 0;
+}
+
+
+grammar 3 s->aAcBe
+          A->Ab|b
+          B->d
+
+#include <stdio.h>
+#include <stdlib.h>
+
+const char *input;
+char lookahead;
+
+void nextToken() {
+    lookahead = *input++;
+}
+
+void match(char expected) {
+    if (lookahead == expected)
+        nextToken();
+    else {
+        printf("Syntax Error!\n");
+        exit(1);
+    }
+}
+
+void S();
+void A();
+void B();
+
+void S() {
+    match('a');
+    A();
+    match('c');
+    B();
+    match('e');
+}
+
+void A() {
+    if (lookahead == 'b') {
+        match('b');
+    } else if (lookahead == 'A') {
+        match('A');
+        match('b');
+    } else {
+        printf("Syntax Error in A!\n");
+        exit(1);
+    }
+}
+
+void B() {
+    match('d');
+}
+
+void parseGrammar3(const char *str) {
+    input = str;
+    nextToken();
+    S();
+    if (lookahead == '\0')
+        printf("Parsing successful!\n");
+    else
+        printf("Syntax Error!\n");
+}
+
+int main() {
+    parseGrammar3("abce");  // Example input
+    return 0;
+}

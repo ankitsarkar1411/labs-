@@ -1,0 +1,34 @@
+#include <stdio.h>
+#include <string.h>
+
+void discardPreprocessorDirectives(const char *inputFile, const char *outputFile) {
+    FILE *in = fopen(inputFile, "r");
+    FILE *out = fopen(outputFile, "w");
+    if (!in || !out) {
+        printf("Error: Unable to open file.\n");
+        return;
+    }
+
+    char line[1000];
+    while (fgets(line, sizeof(line), in)) {
+        if (line[0] != '#') {
+            fputs(line, out);
+        }
+    }
+
+    fclose(in);
+    fclose(out);
+}
+
+int main() {
+    char inputFile[100], outputFile[100];
+    printf("Enter the input file name: ");
+    scanf("%s", inputFile);
+    printf("Enter the output file name: ");
+    scanf("%s", outputFile);
+
+    discardPreprocessorDirectives(inputFile, outputFile);
+
+    printf("Preprocessor directives discarded successfully.\n");
+    return 0;
+}

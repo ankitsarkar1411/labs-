@@ -1,0 +1,143 @@
+CD Lab 2
+
+q1.
+
+#include <stdio.h>
+
+void replaceSpacesAndTabs(const char *inputFile, const char *outputFile) {
+    FILE *in = fopen(inputFile, "r");
+    FILE *out = fopen(outputFile, "w");
+    if (!in || !out) {
+        printf("Error: Unable to open file.\n");
+        return;
+    }
+
+    char c, prev = '\0';
+    while ((c = fgetc(in)) != EOF) {
+        if (c == ' ' || c == '\t') {
+            if (prev != ' ') {
+                fputc(' ', out);
+            }
+        } else {
+            fputc(c, out);
+        }
+        prev = c;
+    }
+
+    fclose(in);
+    fclose(out);
+}
+
+int main() {
+    char inputFile[100], outputFile[100];
+    printf("Enter the input file name: ");
+    scanf("%s", inputFile);
+    printf("Enter the output file name: ");
+    scanf("%s", outputFile);
+
+    replaceSpacesAndTabs(inputFile, outputFile);
+
+    printf("Spaces and tabs replaced successfully.\n");
+    return 0;
+}
+
+
+q2.
+
+#include <stdio.h>
+#include <string.h>
+
+void discardPreprocessorDirectives(const char *inputFile, const char *outputFile) {
+    FILE *in = fopen(inputFile, "r");
+    FILE *out = fopen(outputFile, "w");
+    if (!in || !out) {
+        printf("Error: Unable to open file.\n");
+        return;
+    }
+
+    char line[1000];
+    while (fgets(line, sizeof(line), in)) {
+        if (line[0] != '#') {
+            fputs(line, out);
+        }
+    }
+
+    fclose(in);
+    fclose(out);
+}
+
+int main() {
+    char inputFile[100], outputFile[100];
+    printf("Enter the input file name: ");
+    scanf("%s", inputFile);
+    printf("Enter the output file name: ");
+    scanf("%s", outputFile);
+
+    discardPreprocessorDirectives(inputFile, outputFile);
+
+    printf("Preprocessor directives discarded successfully.\n");
+    return 0;
+}
+
+q3.
+
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+const char *keywords[] = {
+    "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
+    "else", "enum", "extern", "float", "for", "goto", "if", "int", "long",
+    "register", "return", "short", "signed", "sizeof", "static", "struct", "switch",
+    "typedef", "union", "unsigned", "void", "volatile", "while"
+};
+#define NUM_KEYWORDS (sizeof(keywords) / sizeof(keywords[0]))
+
+int isKeyword(const char *word) {
+    for (int i = 0; i < NUM_KEYWORDS; i++) {
+        if (strcmp(word, keywords[i]) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void processFile(const char *inputFile) {
+    FILE *in = fopen(inputFile, "r");
+    if (!in) {
+        printf("Error: Unable to open file.\n");
+        return;
+    }
+
+    char word[100];
+    int ch, i = 0;
+    while ((ch = fgetc(in)) != EOF) {
+        if (isalnum(ch) || ch == '_') {
+            word[i++] = ch;
+        } else {
+            if (i > 0) {
+                word[i] = '\0';
+                if (isKeyword(word)) {
+                    for (int j = 0; word[j]; j++) {
+                        word[j] = toupper(word[j]);
+                    }
+                }
+                printf("%s", word);
+                i = 0;
+            }
+            putchar(ch);
+        }
+    }
+
+    fclose(in);
+}
+
+int main() {
+    char inputFile[100];
+    printf("Enter the input file name: ");
+    scanf("%s", inputFile);
+
+    processFile(inputFile);
+
+    return 0;
+}

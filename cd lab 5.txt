@@ -1,0 +1,182 @@
+cd lab 5
+
+q1.
+
+%{
+#include <stdio.h>
+int vowels = 0, consonants = 0;
+%}
+%%
+[aAeEiIoOuU]  { vowels++; }
+[b-df-hj-np-tv-zB-DF-HJ-NP-TV-Z] { consonants++; }
+.|\n   { }  // Ignore other characters
+%%
+int main() {
+    printf("Enter text (Ctrl+D to end input):\n");
+    yylex();
+    printf("Vowels: %d\n", vowels);
+    printf("Consonants: %d\n", consonants);
+    return 0;
+}
+int yywrap() { return 1; }
+
+run
+
+flex vowel_consonant.l
+gcc lex.yy.c -o vowel_consonant -lfl
+./vowel_consonant
+
+
+q2.
+
+%{
+#include <stdio.h>
+int words = 0, chars = 0, blanks = 0, lines = 0;
+%}
+
+%%
+[a-zA-Z0-9]+   { words++; chars += yyleng; }  
+[ \t]          { blanks++; chars++; }  
+\n             { lines++; chars++; }  
+.              { chars++; }  
+%%
+
+int main() {
+    printf("Enter text (Ctrl+D to end input):\n");
+    yylex();
+    printf("Words: %d\nCharacters: %d\nBlanks: %d\nLines: %d\n", words, chars, blanks, lines);
+    return 0;
+}
+
+int yywrap() { return 1; }
+
+run
+
+flex word_count.l
+gcc lex.yy.c -o word_count -lfl
+./word_count
+
+
+q3.
+
+%{
+#include <stdio.h>
+int pos_int = 0, neg_int = 0, pos_float = 0, neg_float = 0;
+%}
+
+%%
+"-"[0-9]+      { neg_int++; }  
+[0-9]+         { pos_int++; }  
+"-"[0-9]+"."[0-9]+ { neg_float++; }  
+[0-9]+"."[0-9]+ { pos_float++; }  
+.|\n           { }  
+%%
+
+int main() {
+    printf("Enter numbers (Ctrl+D to end input):\n");
+    yylex();
+    printf("Positive Integers: %d\nNegative Integers: %d\n", pos_int, neg_int);
+    printf("Positive Floats: %d\nNegative Floats: %d\n", pos_float, neg_float);
+    return 0;
+}
+
+int yywrap() { return 1; }
+
+
+run
+
+flex number_count.l
+gcc lex.yy.c -o number_count -lfl
+./number_count
+
+
+q4.
+
+%{
+#include <stdio.h>
+int scanf_count = 0, printf_count = 0;
+%}
+
+%%
+"scanf"  { printf("READ"); scanf_count++; }  
+"printf" { printf("WRITE"); printf_count++; }  
+.|\n     { putchar(yytext[0]); }  
+%%
+
+int main() {
+    printf("Enter C code (Ctrl+D to end input):\n");
+    yylex();
+    printf("\nScanf Count: %d\nPrintf Count: %d\n", scanf_count, printf_count);
+    return 0;
+}
+
+int yywrap() { return 1; }
+
+run
+
+flex replace_io.l
+gcc lex.yy.c -o replace_io -lfl
+./replace_io < input.c
+
+
+q1.
+
+Enter text (Ctrl+D to end input):
+Hello World
+Vowels: 3
+Consonants: 7
+
+q2.
+
+Enter text (Ctrl+D to end input):
+Hello world!
+Welcome to FLEX.
+Words: 5
+Characters: 28
+Blanks: 4
+Lines: 2
+
+
+q3.
+
+Enter numbers (Ctrl+D to end input):
+10 -5 3.14 -2.71
+42 0 -100 7.89 -0.5
+Positive Integers: 3
+Negative Integers: 2
+Positive Floats: 2
+Negative Floats: 2
+
+
+q4.
+
+input.c
+
+#include <stdio.h>
+
+int main() {
+    int x;
+    printf("Enter a number: ");
+    scanf("%d", &x);
+    printf("You entered: %d", x);
+    return 0;
+}
+
+
+Enter C code (Ctrl+D to end input):
+#include <stdio.h>
+
+int main() {
+    int x;
+    WRITE("Enter a number: ");
+    READ("%d", &x);
+    WRITE("You entered: %d", x);
+    return 0;
+}
+
+Scanf Count: 1
+Printf Count: 2
+
+
+
+

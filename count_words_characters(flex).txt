@@ -1,0 +1,26 @@
+%{
+#include <stdio.h>
+int words = 0, chars = 0, blanks = 0, lines = 0;
+%}
+
+%%
+[a-zA-Z0-9]+   { words++; chars += yyleng; }  
+[ \t]          { blanks++; chars++; }  
+\n             { lines++; chars++; }  
+.              { chars++; }  
+%%
+
+int main() {
+    printf("Enter text (Ctrl+D to end input):\n");
+    yylex();
+    printf("Words: %d\nCharacters: %d\nBlanks: %d\nLines: %d\n", words, chars, blanks, lines);
+    return 0;
+}
+
+int yywrap() { return 1; }
+
+run
+
+flex word_count.l
+gcc lex.yy.c -o word_count -lfl
+./word_count

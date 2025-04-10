@@ -1,0 +1,121 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_TOKEN_LEN 100
+
+typedef struct {
+    int row, col;
+    char type[MAX_TOKEN_LEN];
+    char value[MAX_TOKEN_LEN];
+} Token;
+
+void getNextToken(FILE *file, Token *token, int *row, int *col) {
+    char ch;
+    while ((ch = fgetc(file)) != EOF) {
+        (*col)++;
+
+        // Handle newlines
+        if (ch == '\n') {
+            (*row)++;
+            *col = 1;
+            continue;
+        }
+
+        // Skip whitespaces
+        if (isspace(ch)) continue;
+
+        // Skip single-line comments
+        if (ch == '/' && (ch = fgetc(file)) == '/') {
+            while ((ch = fgetc(file)) != '\n' && ch != EOF);
+            (*row)++;
+            *col = 1;
+            continue;
+        }
+
+        // Skip multi-line comments
+        if (ch == '/' && ch == '*') {
+            while ((ch = fgetc(file)) != EOF) {
+                if (ch == '*' && (ch = fgetc(file)) == '/') break;
+                if (ch == '\n') (*row)++;
+            }
+            continue;
+        }
+
+        // Skip preprocessor directives
+        if (ch == '#') {
+            while ((ch = fgetc(file)) != '\n' && ch != EOF);
+            (*row)++;
+            *col = 1;
+            continue;
+        }
+
+        // String literals
+        if (ch == '"') {
+            int i = 0;
+            token->value[i++] = ch;
+            while ((ch = fgetc(file)) != EOF && ch != '"') token->value[i++] = ch;
+            token->value[i++] = '"';
+            token->value[i] = '\0';
+            strcpy(token->type, "STRING_LITERAL");
+            token->row = *row;
+            token->col = *col;
+            return;
+        }
+
+        // Numerical constants
+        if (isdigit(ch)) {
+            int i = 0;
+            token->value[i++] = ch;
+            while (isdigit(ch = fgetc(file)) || ch == '.') token->value[i++] = ch;
+            token->value[i] = '\0';
+            ungetc(ch, file);
+            strcpy(token->type, "NUM_CONSTANT");
+            token->row = *row;
+            token->col = *col;
+            return;
+        }
+
+        // Identifiers or keywords
+        if (isalpha(ch) || ch == '_') {
+            int i = 0;
+            token->value[i++] = ch;
+            while (isalnum(ch = fgetc(file)) || ch == '_') token->value[i++] = ch;
+            token->value[i] = '\0';
+            ungetc(ch, file);
+            strcpy(token->type, "IDENTIFIER");
+            token->row = *row;
+            token->col = *col;
+            return;
+        }
+
+        // Operators and special symbols
+        token->value[0] = ch;
+        token->value[1] = '\0';
+        strcpy(token->type, ispunct(ch) ? "SPECIAL_SYMBOL" : "UNKNOWN");
+        token->row = *row;
+        token->col = *col;
+        return;
+    }
+    strcpy(token->type, "EOF");
+}
+
+int main() {
+    FILE *file = fopen("test.c", "r");
+    if (!file) {
+        printf("Error: Cannot open file.\n");
+        return 1;
+    }
+
+    Token token;
+    int row = 1, col = 1;
+
+    while (1) {
+        getNextToken(file, &token, &row, &col);
+        if (strcmp(token.type, "EOF") == 0) break;
+        printf("Token: %-15s Type: %-15s Row: %-3d Col: %-3d\n", token.value, token.type, token.row, token.col);
+    }
+
+    fclose(file);
+    return 0;
+}
