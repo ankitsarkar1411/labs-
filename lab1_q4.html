@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produce Bill</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f8ff;
+        }
+        .container {
+            width: 400px;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .container h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        label {
+            font-weight: bold;
+        }
+        select, input[type="checkbox"], input[type="text"] {
+            margin-top: 10px;
+            margin-bottom: 20px;
+            width: 100%;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .checkbox-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .checkbox-group label {
+            margin-left: 5px;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Produce Bill</h1>
+
+        <label for="brand">Choose a Brand:</label>
+        <select id="brand">
+            <option value="HP">HP</option>
+            <option value="Nokia">Nokia</option>
+            <option value="Samsung">Samsung</option>
+            <option value="Motorola">Motorola</option>
+            <option value="Apple">Apple</option>
+        </select>
+
+        <label>Select Device:</label>
+        <div class="checkbox-group">
+            <input type="checkbox" id="mobile" value="Mobile">
+            <label for="mobile">Mobile</label>
+            <input type="checkbox" id="laptop" value="Laptop">
+            <label for="laptop">Laptop</label>
+        </div>
+
+        <label for="quantity">Enter Quantity:</label>
+        <input type="text" id="quantity" placeholder="Enter quantity">
+
+        <button class="btn" onclick="produceBill()">Produce Bill</button>
+    </div>
+
+    <script>
+        function produceBill() {
+            const brand = document.getElementById('brand').value;
+            const isMobileChecked = document.getElementById('mobile').checked;
+            const isLaptopChecked = document.getElementById('laptop').checked;
+            const quantity = parseInt(document.getElementById('quantity').value);
+
+            if (isNaN(quantity) || quantity <= 0) {
+                alert('Please enter a valid quantity!');
+                return;
+            }
+
+            let totalAmount = 0;
+            let deviceSelected = [];
+
+            // Pricing
+            const mobilePrices = {
+                HP: 20000,
+                Nokia: 15000,
+                Samsung: 25000,
+                Motorola: 18000,
+                Apple: 50000
+            };
+
+            const laptopPrices = {
+                HP: 40000,
+                Nokia: 0, // Nokia doesn't make laptops
+                Samsung: 45000,
+                Motorola: 0, // Motorola doesn't make laptops
+                Apple: 80000
+            };
+
+            // Calculate total based on selections
+            if (isMobileChecked) {
+                deviceSelected.push('Mobile');
+                totalAmount += mobilePrices[brand] * quantity;
+            }
+
+            if (isLaptopChecked) {
+                deviceSelected.push('Laptop');
+                if (laptopPrices[brand] === 0) {
+                    alert(`${brand} does not manufacture Laptops. Skipping Laptop.`);
+                } else {
+                    totalAmount += laptopPrices[brand] * quantity;
+                }
+            }
+
+            if (deviceSelected.length === 0) {
+                alert('Please select at least one device!');
+                return;
+            }
+
+            alert(`Brand: ${brand}\nDevice(s): ${deviceSelected.join(', ')}\nQuantity: ${quantity}\nTotal Amount: ₹${totalAmount}`);
+        }
+    </script>
+</body>
+</html>

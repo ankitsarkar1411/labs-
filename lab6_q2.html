@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Employee Data Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: auto; }
+        input, button { margin: 5px; padding: 8px; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+
+    <h2>Insert Employee Data</h2>
+    <input type="text" id="personName" placeholder="Enter Person Name">
+    <input type="text" id="companyName" placeholder="Enter Company Name">
+    <input type="number" id="salary" placeholder="Enter Salary">
+    <button onclick="addEmployee()">Save Employee</button>
+
+    <h2>Search Employees by Company</h2>
+    <input type="text" id="searchCompany" placeholder="Enter Company Name">
+    <button onclick="searchEmployees()">Search</button>
+
+    <h3>Search Results:</h3>
+    <table id="resultsTable">
+        <tr>
+            <th>Person Name</th>
+            <th>City</th>
+        </tr>
+    </table>
+
+    <h3>Stored Employee Data:</h3>
+    <table id="employeeTable">
+        <tr>
+            <th>Person Name</th>
+            <th>Company Name</th>
+            <th>Salary</th>
+        </tr>
+    </table>
+
+    <script>
+        let employees = [];
+        let cities = { "Alice": "New York", "Bob": "Los Angeles", "Charlie": "Chicago" }; // Mock city data
+
+        function addEmployee() {
+            let person = document.getElementById("personName").value;
+            let company = document.getElementById("companyName").value;
+            let salary = document.getElementById("salary").value;
+
+            if (person && company && salary) {
+                employees.push({ person, company, salary });
+                updateEmployeeTable();
+            }
+        }
+
+        function updateEmployeeTable() {
+            let table = document.getElementById("employeeTable");
+            table.innerHTML = `<tr><th>Person Name</th><th>Company Name</th><th>Salary</th></tr>`;
+            employees.forEach(emp => {
+                table.innerHTML += `<tr><td>${emp.person}</td><td>${emp.company}</td><td>${emp.salary}</td></tr>`;
+            });
+        }
+
+        function searchEmployees() {
+            let searchCompany = document.getElementById("searchCompany").value;
+            let resultsTable = document.getElementById("resultsTable");
+            resultsTable.innerHTML = `<tr><th>Person Name</th><th>City</th></tr>`;
+
+            employees.filter(emp => emp.company === searchCompany).forEach(emp => {
+                let city = cities[emp.person] || "Unknown";
+                resultsTable.innerHTML += `<tr><td>${emp.person}</td><td>${city}</td></tr>`;
+            });
+        }
+    </script>
+
+</body>
+</html>

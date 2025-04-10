@@ -1,0 +1,179 @@
+webdev lab 6
+
+q1.
+
+views.py
+
+from django.shortcuts import render
+
+def car_selection(request):
+    if request.method == "POST":
+        manufacturer = request.POST.get('manufacturer')
+        model = request.POST.get('model')
+        return render(request, 'car_details.html', {'manufacturer': manufacturer, 'model': model})
+    return render(request, 'car_selection.html')
+
+
+car_selection.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select a Car</title>
+</head>
+<body>
+    <h1>Select a Car Manufacturer and Model</h1>
+    <form method="post">
+        {% csrf_token %}
+        <label for="manufacturer">Car Manufacturer:</label>
+        <select name="manufacturer" id="manufacturer">
+            <option value="Toyota">Toyota</option>
+            <option value="Honda">Honda</option>
+            <option value="Ford">Ford</option>
+            <option value="BMW">BMW</option>
+        </select><br><br>
+
+        <label for="model">Model Name:</label>
+        <input type="text" name="model" id="model" required><br><br>
+
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
+
+car_details.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Car Details</title>
+</head>
+<body>
+    <h1>Selected Car Details</h1>
+    <p><strong>Manufacturer:</strong> {{ manufacturer }}</p>
+    <p><strong>Model:</strong> {{ model }}</p>
+    <a href="/">Go Back</a>
+</body>
+</html>
+
+
+urls.py
+
+from django.contrib import admin
+from django.urls import path
+from car_app import views
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', views.car_selection, name='car_selection'),
+]
+
+q2.
+
+views.py
+
+from django.shortcuts import render, redirect
+
+def first_page(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        roll = request.POST.get('roll')
+        subject = request.POST.get('subject')
+
+        # Store data in session
+        request.session['name'] = name
+        request.session['roll'] = roll
+        request.session['subject'] = subject
+
+        return redirect('second_page')
+
+    subjects = ['Math', 'Science', 'History']
+    return render(request, 'firstPage.html', {'subjects': subjects})
+
+def second_page(request):
+    name = request.session.get('name')
+    roll = request.session.get('roll')
+    subject = request.session.get('subject')
+
+    context = {
+        'name': name,
+        'roll': roll,
+        'subject': subject,
+    }
+
+    return render(request, 'secondPage.html', context)
+
+def back_to_first_page(request):
+    return redirect('first_page')
+
+urls.py
+
+from django.urls import path
+from .views import first_page, second_page, back_to_first_page
+
+urlpatterns = [
+    path('', first_page, name='first_page'),
+    path('second/', second_page, name='second_page'),
+    path('back/', back_to_first_page, name='back_to_first_page'),
+]
+
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('myapp.urls')),
+]
+
+firstpage.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Page</title>
+</head>
+<body>
+    <h1>First Page</h1>
+    <form method="post">
+        {% csrf_token %}
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="roll">Roll:</label>
+        <input type="text" id="roll" name="roll" required><br><br>
+
+        <label for="subject">Subjects:</label>
+        <select id="subject" name="subject">
+            {% for subject in subjects %}
+                <option value="{{ subject }}">{{ subject }}</option>
+            {% endfor %}
+        </select><br><br>
+
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
+
+secondpage.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Second Page</title>
+</head>
+<body>
+    <h1>Second Page</h1>
+    <label>Name: {{ name }}</label><br>
+    <label>Roll: {{ roll }}</label><br>
+    <label>Subject: {{ subject }}</label><br><br>
+
+    <a href="{% url 'back_to_first_page' %}"><button>Back to First Page</button></a>
+</body>
+</html>
+

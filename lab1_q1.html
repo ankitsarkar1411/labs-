@@ -1,0 +1,65 @@
+# Web Page with Table and Image
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table and Image Movement</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        table {
+            border-collapse: collapse;
+            margin: 20px;
+            position: relative;
+            transition: transform 1s;
+        }
+        td {
+            border: 1px solid #000;
+            padding: 10px;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        #container {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <table>
+        <tr>
+            <td>Row 1, Cell 1</td>
+            <td>Row 1, Cell 2</td>
+            <td>Row 1, Cell 3</td>
+        </tr>
+        <tr>
+            <td>Row 2, Cell 1</td>
+            <td>Row 2, Cell 2</td>
+            <td>Row 2, Cell 3</td>
+        </tr>
+        <tr>
+            <td>Row 3, Cell 1</td>
+            <td>Row 3, Cell 2</td>
+            <td>Row 3, Cell 3</td>
+        </tr>
+    </table>
+    <img src="https://via.placeholder.com/150" alt="Placeholder Image">
+</div>
+
+<button onclick="moveElements()">Move</button>
+
+<script>
+    function moveElements() {
+        const container = document.getElementById('container');
+        container.style.transform = 'translateX(-100px)';
+    }
+</script>
+
+</body>
+</html>

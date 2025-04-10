@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Bio-Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #74ebd5, #acb6e5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        form {
+            background: #fff;
+            padding: 25px 20px;
+            border-radius: 12px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+            width: 350px;
+        }
+        h3 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+        }
+        input[type="text"], input[type="email"], input[type="date"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 4px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        textarea {
+            resize: none;
+        }
+        input[type="radio"], input[type="checkbox"] {
+            margin-right: 6px;
+        }
+        .radio-group, .checkbox-group {
+            margin-bottom: 15px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background: #f4f4f4;
+            padding: 8px;
+            font-size: 14px;
+        }
+        td {
+            padding: 6px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <form>
+        <h3>Student Bio-Data</h3>
+        <label>Name: <input type="text" placeholder="Enter your name"></label>
+        <label>Date of Birth: <input type="date"></label>
+        <div class="radio-group">
+            <label>Gender:</label>
+            <label><input type="radio" name="gender"> Male</label>
+            <label><input type="radio" name="gender"> Female</label>
+        </div>
+        <label>Email: <input type="email" placeholder="Enter your email"></label>
+        <label>Address: <textarea placeholder="Enter your address"></textarea></label>
+        <div class="checkbox-group">
+            <label>Subjects Interested:</label>
+            <label><input type="checkbox"> Maths</label>
+            <label><input type="checkbox"> Science</label>
+            <label><input type="checkbox"> English</label>
+        </div>
+        <table>
+            <tr><th>Course</th><th>Grade</th></tr>
+            <tr><td>Maths</td><td><input type="text" placeholder="Grade"></td></tr>
+            <tr><td>Science</td><td><input type="text" placeholder="Grade"></td></tr>
+            <tr><td>English</td><td><input type="text" placeholder="Grade"></td></tr>
+        </table>
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Directory</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h2, h3 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            width: 50%;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+        input, button {
+            padding: 8px;
+            width: 100%;
+            margin-top: 5px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .directory-list {
+            margin-top: 20px;
+        }
+        .category {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff;
+        }
+        .category h3 {
+            margin: 0;
+            color: #007bff;
+        }
+        .category ul {
+            list-style: none;
+            padding: 0;
+        }
+        .category li {
+            margin: 5px 0;
+        }
+        .category a {
+            text-decoration: none;
+            color: #333;
+        }
+        .category a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Website Directory</h2>
+
+    <!-- Form to Add Category and Pages -->
+    <form id="directoryForm">
+        <h3>Add Category and Page</h3>
+        <label for="categoryName">Category Name:</label>
+        <input type="text" id="categoryName" required>
+
+        <label for="categoryVisits">Number of Visits:</label>
+        <input type="number" id="categoryVisits" min="0" required>
+
+        <label for="categoryLikes">Number of Likes:</label>
+        <input type="number" id="categoryLikes" min="0" required>
+
+        <label for="pageTitle">Page Title:</label>
+        <input type="text" id="pageTitle" required>
+
+        <label for="pageURL">Page URL:</label>
+        <input type="url" id="pageURL" required>
+
+        <label for="pageViews">Page Views:</label>
+        <input type="number" id="pageViews" min="0" required>
+
+        <button type="submit">Add Category & Page</button>
+    </form>
+
+    <!-- Display the Directory List -->
+    <div class="directory-list" id="directoryList">
+        <h3>Saved Categories and Pages</h3>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            loadDirectory(); // Load saved categories and pages on page load
+        });
+
+        document.getElementById("directoryForm").addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            // Get form values
+            let categoryName = document.getElementById("categoryName").value;
+            let categoryVisits = document.getElementById("categoryVisits").value;
+            let categoryLikes = document.getElementById("categoryLikes").value;
+            let pageTitle = document.getElementById("pageTitle").value;
+            let pageURL = document.getElementById("pageURL").value;
+            let pageViews = document.getElementById("pageViews").value;
+
+            // Get stored data from localStorage
+            let directory = JSON.parse(localStorage.getItem("directory")) || [];
+
+            // Check if category exists
+            let category = directory.find(c => c.name === categoryName);
+
+            if (!category) {
+                category = {
+                    name: categoryName,
+                    numVisits: categoryVisits,
+                    numLikes: categoryLikes,
+                    pages: []
+                };
+                directory.push(category);
+            }
+
+            // Add new page to the category
+            category.pages.push({ title: pageTitle, url: pageURL, views: pageViews });
+
+            // Save updated directory in localStorage
+            localStorage.setItem("directory", JSON.stringify(directory));
+
+            // Reset form
+            document.getElementById("directoryForm").reset();
+
+            // Reload the directory list
+            loadDirectory();
+        });
+
+        function loadDirectory() {
+            let directoryList = document.getElementById("directoryList");
+            directoryList.innerHTML = "<h3>Saved Categories and Pages</h3>";
+
+            let directory = JSON.parse(localStorage.getItem("directory")) || [];
+
+            if (directory.length === 0) {
+                directoryList.innerHTML += "<p>No categories added yet.</p>";
+                return;
+            }
+
+            directory.forEach(category => {
+                let categoryDiv = document.createElement("div");
+                categoryDiv.classList.add("category");
+
+                categoryDiv.innerHTML = `
+                    <h3>${category.name} (Visits: ${category.numVisits} | Likes: ${category.numLikes})</h3>
+                    <ul>
+                        ${category.pages.map(page => `
+                            <li>
+                                <a href="${page.url}" target="_blank">${page.title} (Views: ${page.views})</a>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+
+                directoryList.appendChild(categoryDiv);
+            });
+        }
+    </script>
+
+</body>
+</html>

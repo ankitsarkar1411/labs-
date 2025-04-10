@@ -1,0 +1,240 @@
+q1.
+
+models.py
+
+from django.db import models
+
+# Category model to store category details
+class Category(models.Model):
+    name = models.CharField(max_length=100)
+    num_visits = models.IntegerField(default=0)
+    num_likes = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.name
+
+# Page model to store the webpage details
+class Page(models.Model):
+    category = models.ForeignKey(Category, related_name='pages', on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    url = models.URLField()
+    views = models.IntegerField(default=0)
+
+    def __str__(self):
+        return self.title
+
+forms.py
+
+from django import forms
+from .models import Category, Page
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ['name', 'num_visits', 'num_likes']
+
+class PageForm(forms.ModelForm):
+    class Meta:
+        model = Page
+        fields = ['category', 'title', 'url', 'views']
+
+
+views.py
+from django.shortcuts import render, redirect
+from .forms import CategoryForm, PageForm
+from .models import Category, Page
+def add_category_page(request):
+    if request.method == "POST":
+        category_form = CategoryForm(request.POST)
+        page_form = PageForm(request.POST) 
+        if category_form.is_valid() and page_form.is_valid():
+            category = category_form.save()
+            page = page_form.save(commit=False)
+            page.category = category
+            page.save()
+            return redirect('view_directory')
+    else:
+        category_form = CategoryForm()
+        page_form = PageForm()
+    return render(request, 'directory/add_category_page.html', {
+        'category_form': category_form,
+        'page_form': page_form
+    })
+def view_directory(request):
+    categories = Category.objects.all()
+    return render(request, 'directory/view_directory.html', {'categories': categories})
+
+add_category_page.html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Category and Page</title>
+</head>
+<body>
+    <h2>Add Category and Page</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <h3>Category Form</h3>
+        {{ category_form.as_p }}
+        <h3>Page Form</h3>
+        {{ page_form.as_p }}
+        <button type="submit">Submit</button>
+    </form>
+</body>
+</html>
+
+view_directory.html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Website Directory</title>
+</head>
+<body>
+    <h2>Website Directory</h2>
+    
+    <ul>
+        {% for category in categories %}
+            <li>
+                <h3>{{ category.name }} (Visits: {{ category.num_visits }} | Likes: {{ category.num_likes }})</h3>
+                <ul>
+                    {% for page in category.pages.all %}
+                        <li><a href="{{ page.url }}" target="_blank">{{ page.title }} (Views: {{ page.views }})</a></li>
+                    {% endfor %}
+                </ul>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <a href="{% url 'add_category_page' %}">Add New Category and Page</a>
+</body>
+</html>
+
+urls.py
+
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('add/', views.add_category_page, name='add_category_page'),
+    path('', views.view_directory, name='view_directory'),
+]
+
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('directory.urls')),
+]
+
+q2.
+
+models.py
+
+from django.db import models
+
+class WORKS(models.Model):
+    person_name = models.CharField(max_length=100)
+    company_name = models.CharField(max_length=100)
+    salary = models.IntegerField()
+
+class LIVES(models.Model):
+    person_name = models.CharField(max_length=100)
+    street = models.CharField(max_length=100)
+    city = models.CharField(max_length=100)
+
+forms.py
+
+from django import forms
+from .models import WORKS
+
+class WorksForm(forms.ModelForm):
+    class Meta:
+        model = WORKS
+        fields = ['person_name', 'company_name', 'salary']
+
+views.py
+
+from django.shortcuts import render
+from .models import WORKS, LIVES
+from .forms import WorksForm
+
+def insert_work(request):
+    if request.method == "POST":
+        form = WorksForm(request.POST)
+        if form.is_valid():
+            form.save()
+    else:
+        form = WorksForm()
+    return render(request, "insert_work.html", {"form": form})
+
+def search_employees(request):
+    employees = None
+    if request.method == "POST":
+        company = request.POST.get("company_name")
+        employees = WORKS.objects.filter(company_name=company).select_related()
+        employees = [(w.person_name, LIVES.objects.filter(person_name=w.person_name).first().city if LIVES.objects.filter(person_name=w.person_name).exists() else "Unknown") for w in employees]
+    return render(request, "search.html", {"employees": employees})
+
+insert_work.html
+
+<!DOCTYPE html>
+<html>
+<head><title>Insert Work</title></head>
+<body>
+    <h2>Insert Work Data</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Save</button>
+    </form>
+</body>
+</html>
+
+search.html
+
+
+<!DOCTYPE html>
+<html>
+<head><title>Search Employees</title></head>
+<body>
+    <h2>Search Employees by Company</h2>
+    <form method="post">
+        {% csrf_token %}
+        <input type="text" name="company_name" placeholder="Enter Company Name" required>
+        <button type="submit">Search</button>
+    </form>
+    {% if employees %}
+        <h3>Results:</h3>
+        <ul>
+            {% for name, city in employees %}
+                <li>{{ name }} - {{ city }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</body>
+</html>
+
+
+urls.py
+
+from django.urls import path
+from .views import insert_work, search_employees
+
+urlpatterns = [
+    path("insert/", insert_work, name="insert_work"),
+    path("search/", search_employees, name="search_employees"),
+]
+
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("", include("myapp.urls")),
+]
+
+

@@ -1,0 +1,240 @@
+q1.
+
+models.py
+
+from django.db import models
+
+class Student(models.Model):
+    name = models.CharField(max_length=100)
+    dob = models.DateField()
+    address = models.TextField()
+    contact_number = models.CharField(max_length=15)
+    email = models.EmailField()
+    english_marks = models.FloatField()
+    physics_marks = models.FloatField()
+    chemistry_marks = models.FloatField()
+
+    def total_percentage(self):
+        return round(((self.english_marks + self.physics_marks + self.chemistry_marks) / 300) * 100, 2)
+
+    def __str__(self):
+        return self.name
+
+forms.py
+
+from django import forms
+from .models import Student
+
+class StudentForm(forms.ModelForm):
+    class Meta:
+        model = Student
+        fields = '__all__'
+
+
+views.py
+
+from django.shortcuts import render
+from .forms import StudentForm
+from .models import Student
+
+def student_form(request):
+    students = Student.objects.all()  # Retrieve all students for display
+    last_student = None  # Store last entered student
+
+    if request.method == "POST":
+        form = StudentForm(request.POST)
+        if form.is_valid():
+            student = form.save()
+            last_student = student  # Save the last student
+
+    else:
+        form = StudentForm()
+
+    return render(request, 'student_form.html', {'form': form, 'students': students, 'last_student': last_student})
+
+
+student_form.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Entry Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+        form {
+            width: 50%;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: blue;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        textarea {
+            height: 100px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Student Details Form</h2>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit</button>
+    </form>
+
+    {% if last_student %}
+        <h3>Last Student Details:</h3>
+        <textarea readonly>
+Name: {{ last_student.name }}
+DOB: {{ last_student.dob }}
+Address: {{ last_student.address }}
+Contact: {{ last_student.contact_number }}
+Email: {{ last_student.email }}
+Marks - English: {{ last_student.english_marks }}, Physics: {{ last_student.physics_marks }}, Chemistry: {{ last_student.chemistry_marks }}
+Total Percentage: {{ last_student.total_percentage }}%
+        </textarea>
+    {% endif %}
+
+</body>
+</html>
+
+
+urls.py
+
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('student_app.urls')),
+]
+
+from django.urls import path
+from .views import student_form
+
+urlpatterns = [
+    path('', student_form, name='student_form'),
+]
+
+
+
+q2.
+
+
+models.py
+
+from django.db import models
+
+class Employee(models.Model):
+    employee_id = models.CharField(max_length=10, unique=True)
+    name = models.CharField(max_length=100)
+    date_of_joining = models.DateField()
+
+    def __str__(self):
+        return f"{self.employee_id} - {self.name}"
+
+forms.py
+
+from django import forms
+from .models import Employee
+
+class PromotionCheckForm(forms.Form):
+    employee = forms.ModelChoiceField(
+        queryset=Employee.objects.all(),
+        empty_label="Select Employee",
+        label="Employee ID"
+    )
+    date_of_joining = forms.DateField(
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        label="Date of Joining"
+    )
+
+
+views.py
+
+from django.shortcuts import render
+from datetime import date
+from .forms import PromotionCheckForm
+
+def promotion_check_view(request):
+    message = ""
+    if request.method == "POST":
+        form = PromotionCheckForm(request.POST)
+        if form.is_valid():
+            joining_date = form.cleaned_data['date_of_joining']
+            experience = (date.today() - joining_date).days // 365  # Convert days to years
+
+            if experience >= 5:
+                message = "YES"
+            else:
+                message = "NO"
+    else:
+        form = PromotionCheckForm()
+
+    return render(request, 'employee_app/promotion_check.html', {'form': form, 'message': message})
+
+
+promotion_check.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promotion Check</title>
+</head>
+<body>
+    <h2>Check Promotion Eligibility</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Am I Eligible for Promotion?</button>
+    </form>
+    
+    {% if message %}
+        <h3>Promotion Eligibility: {{ message }}</h3>
+    {% endif %}
+</body>
+</html>
+
+
+urls.py
+
+from django.urls import path
+from .views import promotion_check_view
+
+urlpatterns = [
+    path('promotion-check/', promotion_check_view, name='promotion_check'),
+]
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('employee_app.urls')),  # Include employee_app URLs
+]

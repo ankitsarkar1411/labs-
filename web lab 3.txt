@@ -1,0 +1,66 @@
+web lab 3
+
+q1.
+def celsius_to_farenheit(celsius):
+    return (celsius*1.8)+32
+celsius=float(input("Enter temperature in celsius:"))
+farenheit=celsius_to_farenheit(celsius);
+print(f"{celsius}°C is equal to {farenheit}°F")
+
+q2.
+
+def kilometers_to_miles(kilometers):
+    return kilometers * 0.621371
+
+kilometers = float(input("Enter distance in kilometers: "))
+miles = kilometers_to_miles(kilometers)
+print(f"{kilometers} km is equal to {miles} miles")
+
+q3.
+
+import cmath
+
+# Function to solve a quadratic equation
+def solve_quadratic(a, b, c):
+    d = (b**2) - (4*a*c)  # discriminant
+    sol1 = (-b - cmath.sqrt(d)) / (2 * a)
+    sol2 = (-b + cmath.sqrt(d)) / (2 * a)
+    return sol1, sol2
+
+# Example usage
+a = float(input("Enter coefficient a: "))
+b = float(input("Enter coefficient b: "))
+c = float(input("Enter coefficient c: "))
+solution1, solution2 = solve_quadratic(a, b, c)
+print(f"The solutions are {solution1} and {solution2}")
+
+q4.
+
+import random
+def generate_random_number(start, end):
+    return random.randint(start, end)
+start = int(input("Enter the start of the range: "))
+end = int(input("Enter the end of the range: "))
+random_number = generate_random_number(start, end)
+print(f"Random number between {start} and {end}: {random_number}")
+
+q5.
+
+import math
+def find_square_root(number):
+    return math.sqrt(number)
+number = float(input("Enter a number: "))
+square_root = find_square_root(number)
+print(f"The square root of {number} is {square_root}")
+
+q6.
+
+def swap_variables(a, b):
+    a, b = b, a
+    return a, b
+a = input("Enter value of a: ")
+b = input("Enter value of b: ")
+a, b = swap_variables(a, b)
+print(f"After swapping, a = {a} and b = {b}")
+
+
