@@ -1,0 +1,300 @@
+pcap lab 8 
+
+q1.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+#define N 3  
+__global__ void matrixAddElementWise(int *A, int *B, int *C, int rows, int cols) {
+    int row = blockIdx.x;
+    int col = threadIdx.x;
+
+    if (row < rows && col < cols) {
+        int index = row * cols + col;
+        C[index] = A[index] + B[index];
+    }
+}
+__global__ void matrixAddRowWise(int *A, int *B, int *C, int rows, int cols) {
+    int row = blockIdx.x;
+
+    if (row < rows) {
+        for (int col = 0; col < cols; col++) {
+            int index = row * cols + col;
+            C[index] = A[index] + B[index];
+        }
+    }
+}
+__global__ void matrixAddColumnWise(int *A, int *B, int *C, int rows, int cols) {
+    int col = blockIdx.x;
+
+    if (col < cols) {
+        for (int row = 0; row < rows; row++) {
+            int index = row * cols + col;
+            C[index] = A[index] + B[index];
+        }
+    }
+}
+void printMatrix(int *matrix, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            printf("%d ", matrix[i * cols + j]);
+        }
+        printf("\n");
+    }
+}
+int main() {
+    int A[N * N], B[N * N], C[N * N];
+    int *d_A, *d_B, *d_C;
+
+    for (int i = 0; i < N * N; i++) {
+        A[i] = rand() % 10;
+        B[i] = rand() % 10;
+    }
+    cudaMalloc(&d_A, N * N * sizeof(int));
+    cudaMalloc(&d_B, N * N * sizeof(int));
+    cudaMalloc(&d_C, N * N * sizeof(int));
+    cudaMemcpy(d_A, A, N * N * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, N * N * sizeof(int), cudaMemcpyHostToDevice);
+    matrixAddElementWise<<<N, N>>>(d_A, d_B, d_C, N, N);
+    cudaMemcpy(C, d_C, N * N * sizeof(int), cudaMemcpyDeviceToHost);
+    printf("Element-wise Addition:\n");
+    printMatrix(C, N, N);
+    matrixAddRowWise<<<N, 1>>>(d_A, d_B, d_C, N, N);
+    cudaMemcpy(C, d_C, N * N * sizeof(int), cudaMemcpyDeviceToHost);
+    printf("\nRow-wise Addition:\n");
+    printMatrix(C, N, N);
+    matrixAddColumnWise<<<N, 1>>>(d_A, d_B, d_C, N, N);
+    cudaMemcpy(C, d_C, N * N * sizeof(int), cudaMemcpyDeviceToHost);
+    printf("\nColumn-wise Addition:\n");
+    printMatrix(C, N, N);
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+    return 0;
+}
+
+q2.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+#define N 3  
+__global__ void matrixMulElementWise(int *A, int *B, int *C, int rows, int cols) {
+    int row = blockIdx.x;
+    int col = threadIdx.x;
+
+    if (row < rows && col < cols) {
+        int sum = 0;
+        for (int k = 0; k < cols; k++) {
+            sum += A[row * cols + k] * B[k * cols + col];
+        }
+        C[row * cols + col] = sum;
+    }
+}
+__global__ void matrixMulRowWise(int *A, int *B, int *C, int rows, int cols) {
+    int row = blockIdx.x;
+    if (row < rows) {
+        for (int col = 0; col < cols; col++) {
+            int sum = 0;
+            for (int k = 0; k < cols; k++) {
+                sum += A[row * cols + k] * B[k * cols + col];
+            }
+            C[row * cols + col] = sum;
+        }
+    }
+}
+__global__ void matrixMulColumnWise(int *A, int *B, int *C, int rows, int cols) {
+    int col = blockIdx.x;
+
+    if (col < cols) {
+        for (int row = 0; row < rows; row++) {
+            int sum = 0;
+            for (int k = 0; k < cols; k++) {
+                sum += A[row * cols + k] * B[k * cols + col];
+            }
+            C[row * cols + col] = sum;
+        }
+    }
+}
+void printMatrix(int *matrix, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            printf("%d ", matrix[i * cols + j]);
+        }
+        printf("\n");
+    }
+}
+int main() {
+    int A[N * N], B[N * N], C[N * N];
+    int *d_A, *d_B, *d_C;
+
+    for (int i = 0; i < N * N; i++) {
+        A[i] = rand() % 10;
+        B[i] = rand() % 10;
+    }
+    printf("Matrix A:\n");
+    printMatrix(A, N, N);
+    printf("\nMatrix B:\n");
+    printMatrix(B, N, N);
+    cudaMalloc(&d_A, N * N * sizeof(int));
+    cudaMalloc(&d_B, N * N * sizeof(int));
+    cudaMalloc(&d_C, N * N * sizeof(int));
+    cudaMemcpy(d_A, A, N * N * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, B, N * N * sizeof(int), cudaMemcpyHostToDevice);
+    matrixMulElementWise<<<N, N>>>(d_A, d_B, d_C, N, N);
+    cudaMemcpy(C, d_C, N * N * sizeof(int), cudaMemcpyDeviceToHost);
+    printf("\nElement-wise Multiplication:\n");
+    printMatrix(C, N, N);
+    matrixMulRowWise<<<N, 1>>>(d_A, d_B, d_C, N, N);
+    cudaMemcpy(C, d_C, N * N * sizeof(int), cudaMemcpyDeviceToHost);
+    printf("\nRow-wise Multiplication:\n");
+    printMatrix(C, N, N);
+    matrixMulColumnWise<<<N, 1>>>(d_A, d_B, d_C, N, N);
+    cudaMemcpy(C, d_C, N * N * sizeof(int), cudaMemcpyDeviceToHost);
+    printf("\nColumn-wise Multiplication:\n");
+    printMatrix(C, N, N);
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+    return 0;
+}
+
+q3.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+#define M 3  
+#define N 3  
+__global__ void computeRowSum(int *A, int *rowSum, int rows, int cols) {
+    int row = blockIdx.x;
+    if (row < rows) {
+        int sum = 0;
+        for (int j = 0; j < cols; j++) {
+            sum += A[row * cols + j];
+        }
+        rowSum[row] = sum;
+    }
+}
+__global__ void computeColumnSum(int *A, int *colSum, int rows, int cols) {
+    int col = blockIdx.x;
+    if (col < cols) {
+        int sum = 0;
+        for (int i = 0; i < rows; i++) {
+            sum += A[i * cols + col];
+        }
+        colSum[col] = sum;
+    }
+}
+__global__ void transformMatrix(int *A, int *B, int *rowSum, int *colSum, int rows, int cols) {
+    int row = blockIdx.x;
+    int col = threadIdx.x;
+    if (row < rows && col < cols) {
+        int value = A[row * cols + col];
+        if (value % 2 == 0) {
+            B[row * cols + col] = rowSum[row];  
+        } else {
+            B[row * cols + col] = colSum[col];  
+        }
+    }
+}
+void printMatrix(int *matrix, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            printf("%d ", matrix[i * cols + j]);
+        }
+        printf("\n");
+    }
+}
+int main() {
+    int A[M * N], B[M * N];
+    int *d_A, *d_B, *d_rowSum, *d_colSum;
+    for (int i = 0; i < M * N; i++) {
+        A[i] = rand() % 10;
+    }
+    printf("Original Matrix A:\n");
+    printMatrix(A, M, N);
+    cudaMalloc(&d_A, M * N * sizeof(int));
+    cudaMalloc(&d_B, M * N * sizeof(int));
+    cudaMalloc(&d_rowSum, M * sizeof(int));
+    cudaMalloc(&d_colSum, N * sizeof(int));
+    cudaMemcpy(d_A, A, M * N * sizeof(int), cudaMemcpyHostToDevice);
+    computeRowSum<<<M, 1>>>(d_A, d_rowSum, M, N);
+    computeColumnSum<<<N, 1>>>(d_A, d_colSum, M, N);
+    transformMatrix<<<M, N>>>(d_A, d_B, d_rowSum, d_colSum, M, N);
+    cudaMemcpy(B, d_B, M * N * sizeof(int), cudaMemcpyDeviceToHost);
+    printf("\nTransformed Matrix B:\n");
+    printMatrix(B, M, N);
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_rowSum);
+    cudaFree(d_colSum);
+    return 0;
+}
+
+q4.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <cuda_runtime.h>
+#define N 3  // Matrix size
+__device__ int factorial(int num) {
+    if (num == 0 || num == 1) return 1;
+    int fact = 1;
+    for (int i = 2; i <= num; i++)
+        fact *= i;
+    return fact;
+}
+__device__ int sumOfDigits(int num) {
+    int sum = 0;
+    while (num > 0) {
+        sum += num % 10;
+        num /= 10;
+    }
+    return sum;
+}
+__global__ void transformMatrix(int *A, int *B, int size) {
+    int row = blockIdx.x;
+    int col = threadIdx.x;
+    if (row < size && col < size) {
+        int value = A[row * size + col];
+        if (row == col) {
+            B[row * size + col] = 0;  
+        } else if (row < col) {
+            B[row * size + col] = factorial(value);  
+        } else {
+            B[row * size + col] = sumOfDigits(value);  
+        }
+    }
+}
+void printMatrix(int *matrix, int size) {
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            printf("%d\t", matrix[i * size + j]);
+        }
+        printf("\n");
+    }
+}
+int main() {
+    int A[N * N], B[N * N];
+    int *d_A, *d_B;
+    for (int i = 0; i < N * N; i++) {
+        A[i] = rand() % 10;  
+    }
+    printf("Original Matrix A:\n");
+    printMatrix(A, N);
+    cudaMalloc(&d_A, N * N * sizeof(int));
+    cudaMalloc(&d_B, N * N * sizeof(int));
+    cudaMemcpy(d_A, A, N * N * sizeof(int), cudaMemcpyHostToDevice);
+    transformMatrix<<<N, N>>>(d_A, d_B, N);
+    cudaMemcpy(B, d_B, N * N * sizeof(int), cudaMemcpyDeviceToHost);
+    printf("\nTransformed Matrix B:\n");
+    printMatrix(B, N);
+    cudaFree(d_A);
+    cudaFree(d_B);
+    return 0;
+}
+
+
+

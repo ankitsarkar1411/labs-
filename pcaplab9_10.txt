@@ -1,0 +1,276 @@
+pcap lab 9
+
+q1.
+#include <stdio.h>
+#include <cuda_runtime.h>
+
+__global__ void spmv_kernel(int *csrVal, int *csrColIdx, int *csrRowPtr, int *x, int *y, int N) {
+    int row = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row < N) {
+        int start = csrRowPtr[row];
+        int end = csrRowPtr[row + 1];
+        int sum = 0;
+        for (int i = start; i < end; i++) {
+            sum += csrVal[i] * x[csrColIdx[i]];
+        }
+        y[row] = sum;
+    }
+}
+
+void spmv(int *csrVal, int *csrColIdx, int *csrRowPtr, int *x, int *y, int N, int nnz) {
+    int *d_csrVal, *d_csrColIdx, *d_csrRowPtr, *d_x, *d_y;
+
+    cudaMalloc((void**)&d_csrVal, nnz * sizeof(int));
+    cudaMalloc((void**)&d_csrColIdx, nnz * sizeof(int));
+    cudaMalloc((void**)&d_csrRowPtr, (N + 1) * sizeof(int));
+    cudaMalloc((void**)&d_x, N * sizeof(int));
+    cudaMalloc((void**)&d_y, N * sizeof(int));
+
+    cudaMemcpy(d_csrVal, csrVal, nnz * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_csrColIdx, csrColIdx, nnz * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_csrRowPtr, csrRowPtr, (N + 1) * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_x, x, N * sizeof(int), cudaMemcpyHostToDevice);
+
+    int blockSize = 256;
+    int numBlocks = (N + blockSize - 1) / blockSize;
+    spmv_kernel<<<numBlocks, blockSize>>>(d_csrVal, d_csrColIdx, d_csrRowPtr, d_x, d_y, N);
+
+    cudaMemcpy(y, d_y, N * sizeof(int), cudaMemcpyDeviceToHost);
+
+    cudaFree(d_csrVal);
+    cudaFree(d_csrColIdx);
+    cudaFree(d_csrRowPtr);
+    cudaFree(d_x);
+    cudaFree(d_y);
+}
+
+int main() {
+    int N = 4; 
+    int nnz = 6; 
+    int csrVal[] = {10, 20, 30, 40, 50, 60};
+    int csrColIdx[] = {0, 1, 2, 2, 3, 3};
+    int csrRowPtr[] = {0, 2, 4, 5, 6};
+    int x[] = {1, 2, 3, 4};
+    int y[N];
+    spmv(csrVal, csrColIdx, csrRowPtr, x, y, N, nnz);
+    for (int i = 0; i < N; i++) {
+        printf("%d ", y[i]);
+    }
+    return 0;
+}
+
+q2.
+
+#include <stdio.h>
+#include <cuda_runtime.h>
+__global__ void modify_matrix_kernel(int *A, int M, int N) {
+    int row = blockIdx.x;
+    int col = threadIdx.x;
+    if (row < M && col < N) {
+        if (row == 1) {
+            A[row * N + col] = A[row * N + col] * A[row * N + col]; 
+        } else if (row == 2) {
+            A[row * N + col] = A[row * N + col] * A[row * N + col] * A[row * N + col];         }
+    }
+}
+int main() {
+    int M = 3, N = 4;
+    int A[12] = {1, 2, 3, 4, 6, 5, 8, 3, 2, 4, 10, 1}; // input matrix
+    int *d_A;
+    cudaMalloc((void**)&d_A, M * N * sizeof(int));
+    cudaMemcpy(d_A, A, M * N * sizeof(int), cudaMemcpyHostToDevice);
+    int blockSize = N;
+    modify_matrix_kernel<<<M, blockSize>>>(d_A, M, N);
+    cudaMemcpy(A, d_A, M * N * sizeof(int), cudaMemcpyDeviceToHost);
+    printf("Modified Matrix A:\n");
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%d ", A[i * N + j]);
+        }
+        printf("\n");
+    }
+    cudaFree(d_A);
+    return 0;
+}
+
+q3.
+#include <stdio.h>
+#include <cuda_runtime.h>
+__global__ void complement_matrix_kernel(int *A, int *B, int M, int N) {
+    int row = blockIdx.x;
+    int col = threadIdx.x;
+    if (row > 0 && row < M - 1 && col > 0 && col < N - 1) {
+        B[row * N + col] = ~A[row * N + col]; // 1's complement for non-border elements
+    } else {
+        B[row * N + col] = A[row * N + col]; // border elements remain same
+    }
+}
+int main() {
+    int M = 4, N = 4;
+    int A[16] = {1, 2, 3, 4, 6, 5, 8, 3, 2, 4, 10, 1, 9, 1, 2, 5};
+    int B[16];
+    int *d_A, *d_B;
+    cudaMalloc((void**)&d_A, M * N * sizeof(int));
+    cudaMalloc((void**)&d_B, M * N * sizeof(int));
+    cudaMemcpy(d_A, A, M * N * sizeof(int), cudaMemcpyHostToDevice);
+    int blockSize = N;
+    complement_matrix_kernel<<<M, blockSize>>>(d_A, d_B, M, N);
+    cudaMemcpy(B, d_B, M * N * sizeof(int), cudaMemcpyDeviceToHost);
+    printf("Modified Matrix B:\n");
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            printf("%d ", B[i * N + j]);
+        }
+        printf("\n");
+    }
+    cudaFree(d_A);
+    cudaFree(d_B);
+    return 0;
+}
+
+lab 10
+
+q1.
+#include <stdio.h>
+#include <stdlib.h>
+#define TILE_SIZE 16
+__global__ void matrixMul(float *A, float *B, float *C, int width) {
+    __shared__ float sA[TILE_SIZE][TILE_SIZE];
+    __shared__ float sB[TILE_SIZE][TILE_SIZE];  
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    float sum = 0.0f;
+    for (int m = 0; m < width/TILE_SIZE; ++m) {
+        sA[threadIdx.y][threadIdx.x] = A[row * width + (m * TILE_SIZE + threadIdx.x)];
+        sB[threadIdx.y][threadIdx.x] = B[(m * TILE_SIZE + threadIdx.y) * width + col]; 
+        __syncthreads();
+        for (int k = 0; k < TILE_SIZE; ++k) {
+            sum += sA[threadIdx.y][k] * sB[k][threadIdx.x];
+        }  
+        __syncthreads();
+    }
+    
+    if (row < width && col < width) {
+        C[row * width + col] = sum;
+    }
+}
+
+int main() {
+    int width = 1024; // Assuming square matrices
+    size_t size = width * width * sizeof(float);
+        float *h_A = (float*)malloc(size);
+    float *h_B = (float*)malloc(size);
+    float *h_C = (float*)malloc(size);
+    for (int i = 0; i < width*width; i++) {
+        h_A[i] = rand() / (float)RAND_MAX;
+        h_B[i] = rand() / (float)RAND_MAX;
+    }
+    float *d_A, *d_B, *d_C;
+    cudaMalloc(&d_A, size);
+    cudaMalloc(&d_B, size);
+    cudaMalloc(&d_C, size);
+    cudaMemcpy(d_A, h_A, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, h_B, size, cudaMemcpyHostToDevice);
+    dim3 dimBlock(TILE_SIZE, TILE_SIZE);
+    dim3 dimGrid((width + dimBlock.x - 1) / dimBlock.x, 
+                 (width + dimBlock.y - 1) / dimBlock.y);
+    matrixMul<<<dimGrid, dimBlock>>>(d_A, d_B, d_C, width);
+    cudaMemcpy(h_C, d_C, size, cudaMemcpyDeviceToHost);
+    cudaFree(d_A);
+    cudaFree(d_B);
+    cudaFree(d_C);
+    free(h_A);
+    free(h_B);
+    free(h_C);
+    return 0;
+}
+
+q2.
+
+#include <stdio.h>
+#include <stdlib.h>
+#define N 1024 
+ #define M 5    
+ #define THREADS_PER_BLOCK 256
+__constant__ float d_filter[M];
+__global__ void convolution1D(float *input, float *output, int n) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) {
+        float sum = 0.0f;
+        int radius = M / 2;
+        for (int j = -radius; j <= radius; j++) {
+            int idx = i + j;
+            if (idx >= 0 && idx < n) {
+                sum += input[idx] * d_filter[j + radius];
+            }
+        } 
+        output[i] = sum;
+    }
+}
+int main() {
+    float h_input[N];
+    float h_output[N];
+    float h_filter[M] = {0.1f, 0.2f, 0.4f, 0.2f, 0.1f}; 
+    for (int i = 0; i < N; i++) {
+        h_input[i] = rand() / (float)RAND_MAX;
+    }
+    float *d_input, *d_output;
+    cudaMalloc(&d_input, N * sizeof(float));
+    cudaMalloc(&d_output, N * sizeof(float));
+    cudaMemcpyToSymbol(d_filter, h_filter, M * sizeof(float));
+    cudaMemcpy(d_input, h_input, N * sizeof(float), cudaMemcpyHostToDevice);
+    int blocks = (N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    convolution1D<<<blocks, THREADS_PER_BLOCK>>>(d_input, d_output, N);
+    cudaMemcpy(h_output, d_output, N * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaFree(d_input);
+    cudaFree(d_output);
+    return 0;
+}
+
+q3.
+
+#include <stdio.h>
+#include <stdlib.h>
+#define N 1024
+#define THREADS_PER_BLOCK 256
+__global__ void scan_kernel(float *input, float *output, int n) {
+    extern __shared__ float temp[];
+    int tid = threadIdx.x;
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    temp[tid] = (i < n) ? input[i] : 0.0f;
+    __syncthreads();
+    for (int stride = 1; stride < blockDim.x; stride *= 2) {
+        if (tid >= stride) {
+            temp[tid] += temp[tid - stride];
+        }
+        __syncthreads();
+    }
+    if (i < n) {
+        output[i] = temp[tid];
+    }
+}
+int main() {
+    float h_input[N];
+    float h_output[N];
+    for (int i = 0; i < N; i++) {
+        h_input[i] = rand() / (float)RAND_MAX;
+    }
+    float *d_input, *d_output;
+    cudaMalloc(&d_input, N * sizeof(float));
+    cudaMalloc(&d_output, N * sizeof(float));
+    cudaMemcpy(d_input, h_input, N * sizeof(float), cudaMemcpyHostToDevice);
+    int blocks = (N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    scan_kernel<<<blocks, THREADS_PER_BLOCK, THREADS_PER_BLOCK * sizeof(float)>>>(d_input, d_output, N);
+    cudaMemcpy(h_output, d_output, N * sizeof(float), cudaMemcpyDeviceToHost);
+    float cpu_sum = 0.0f;
+    for (int i = 0; i < N; i++) {
+        cpu_sum += h_input[i];
+        if (fabs(h_output[i] - cpu_sum) > 1e-5) {
+            printf("Mismatch at %d: GPU=%f, CPU=%f\n", i, h_output[i], cpu_sum);
+            break;
+        }
+    }
+    cudaFree(d_input);
+    cudaFree(d_output);
+    return 0;
+}

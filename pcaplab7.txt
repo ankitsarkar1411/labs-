@@ -1,0 +1,369 @@
+/***************************************************************************
+ * File: count_word_occurrences.cu
+ * Compile: nvcc count_word_occurrences.cu -o count_word_occurrences
+ ***************************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include <cuda.h>
+
+__device__ int checkSubstring(const char* text, const char* word,
+                              int start, int textLen, int wordLen) {
+    if (start + wordLen > textLen) return 0;
+    for (int i = 0; i < wordLen; i++) {
+        if (text[start + i] != word[i]) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+__global__ void countOccurrences(const char* text, const char* word,
+                                 int textLen, int wordLen, int* count) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < textLen) {
+        if (checkSubstring(text, word, idx, textLen, wordLen)) {
+            atomicAdd(count, 1);
+        }
+    }
+}
+
+int main(){
+    char h_text[256], h_word[256];
+
+    printf("Enter the sentence: ");
+    fgets(h_text, 256, stdin);
+    h_text[strcspn(h_text, "\n")] = 0; // Remove trailing newline if any
+
+    printf("Enter the word to search: ");
+    fgets(h_word, 256, stdin);
+    h_word[strcspn(h_word, "\n")] = 0;
+
+    int textLen = strlen(h_text);
+    int wordLen = strlen(h_word);
+
+    // Device pointers
+    char *d_text, *d_word;
+    int *d_count;
+    int h_count = 0;
+
+    // Allocate device memory
+    cudaMalloc((void**)&d_text, textLen * sizeof(char));
+    cudaMalloc((void**)&d_word, wordLen * sizeof(char));
+    cudaMalloc((void**)&d_count, sizeof(int));
+
+    // Copy data to device
+    cudaMemcpy(d_text, h_text, textLen * sizeof(char), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_word, h_word, wordLen * sizeof(char), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_count, &h_count, sizeof(int), cudaMemcpyHostToDevice);
+
+    // Kernel configuration
+    int blockSize = 256;
+    int gridSize  = (textLen + blockSize - 1) / blockSize;
+
+    // Launch kernel
+    countOccurrences<<<gridSize, blockSize>>>(d_text, d_word, textLen, wordLen, d_count);
+
+    // Copy result back
+    cudaMemcpy(&h_count, d_count, sizeof(int), cudaMemcpyDeviceToHost);
+
+    printf("The word \"%s\" appears %d times in the sentence.\n", h_word, h_count);
+
+    // Free device memory
+    cudaFree(d_text);
+    cudaFree(d_word);
+    cudaFree(d_count);
+
+    return 0;
+}
+
+
+2. 
+/***************************************************************************
+ * File: duplicate_string_twice.cu
+ * Compile: nvcc duplicate_string_twice.cu -o duplicate_string_twice
+ ***************************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include <cuda.h>
+
+__global__ void duplicateString(const char* d_in, char* d_out, int length) {
+    int i = threadIdx.x;
+    if (i < length) {
+        for (int j = 0; j < length - i; j++) {
+            output[i * length + j] = input[j];
+        }
+    }
+}
+
+int main() {
+    char h_in[256];
+    printf("Enter a string S: ");
+    fgets(h_in, 256, stdin);
+    h_in[strcspn(h_in, "\n")] = 0;
+
+    int len = strlen(h_in);
+
+    // Allocate device memory
+    char *d_in, *d_out;
+    cudaMalloc((void**)&d_in,  len     * sizeof(char));
+    cudaMalloc((void**)&d_out, (2*len) * sizeof(char));
+
+    // Copy input to device
+    cudaMemcpy(d_in, h_in, len * sizeof(char), cudaMemcpyHostToDevice);
+
+    // Launch kernel
+    int blockSize = 256;
+    int gridSize  = ((2*len) + blockSize - 1) / blockSize;
+    duplicateString<<<gridSize, blockSize>>>(d_in, d_out, len);
+
+    // Copy result back
+    char h_out[512];
+    cudaMemcpy(h_out, d_out, 2*len * sizeof(char), cudaMemcpyDeviceToHost);
+
+    // Add null terminator
+    h_out[2*len] = '\0';
+
+    printf("Output string RS: %s\n", h_out);
+
+    // Free device memory
+    cudaFree(d_in);
+    cudaFree(d_out);
+
+    return 0;
+}
+
+3. 
+/***************************************************************************
+ * File: reverse_words.cu
+ * Compile: nvcc reverse_words.cu -o reverse_words
+ ***************************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include <cuda.h>
+
+// We'll store up to 100 word boundaries in constant memory for simplicity
+__constant__ int d_starts[100];
+__constant__ int d_ends[100];
+
+__global__ void reverseWords(const char* d_in, char* d_out, int len, int wordCount) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < len) {
+        // Identify which word this character belongs to
+        for (int w = 0; w < wordCount; w++) {
+            if (idx >= d_starts[w] && idx <= d_ends[w]) {
+                int start = d_starts[w];
+                int end   = d_ends[w];
+                // Position of idx within the word
+                int pos   = idx - start;
+                // Reversed position
+                int rpos  = (end - start) - pos;
+                d_out[idx] = d_in[start + rpos];
+                return;
+            }
+        }
+        // If idx doesn't belong to any identified word (e.g. multiple spaces),
+        // just copy the character directly.
+        d_out[idx] = d_in[idx];
+    }
+}
+
+int main(){
+    char h_in[256];
+    printf("Enter a sentence with multiple words: ");
+    fgets(h_in, 256, stdin);
+    h_in[strcspn(h_in, "\n")] = 0;
+
+    int len = strlen(h_in);
+
+    // Find word boundaries on the CPU
+    int starts[100], ends[100];
+    int wordCount = 0;
+
+    int i = 0;
+    while (i < len) {
+        // Skip spaces
+        while (i < len && h_in[i] == ' ') i++;
+        if (i >= len) break;
+
+        int start = i;
+        // Move i until next space or end
+        while (i < len && h_in[i] != ' ') {
+            i++;
+        }
+        int end = i - 1;
+
+        starts[wordCount] = start;
+        ends[wordCount]   = end;
+        wordCount++;
+    }
+
+    // Allocate device memory
+    char *d_in, *d_out;
+    cudaMalloc((void**)&d_in,  len * sizeof(char));
+    cudaMalloc((void**)&d_out, len * sizeof(char));
+
+    // Copy the input string to the device
+    cudaMemcpy(d_in, h_in, len * sizeof(char), cudaMemcpyHostToDevice);
+
+    // Copy word boundaries to constant memory
+    cudaMemcpyToSymbol(d_starts, starts, wordCount * sizeof(int));
+    cudaMemcpyToSymbol(d_ends,   ends,   wordCount * sizeof(int));
+
+    // Launch kernel
+    int blockSize = 256;
+    int gridSize  = (len + blockSize - 1) / blockSize;
+    reverseWords<<<gridSize, blockSize>>>(d_in, d_out, len, wordCount);
+
+    // Copy the result back
+    char h_out[256];
+    cudaMemcpy(h_out, d_out, len * sizeof(char), cudaMemcpyDeviceToHost);
+    h_out[len] = '\0';
+
+    printf("Sentence with reversed words: %s\n", h_out);
+
+    // Free device memory
+    cudaFree(d_in);
+    cudaFree(d_out);
+
+    return 0;
+}
+
+4. 
+/***************************************************************************
+ * File: repeat_string_n_times.cu
+ * Compile: nvcc repeat_string_n_times.cu -o repeat_string_n_times
+ ***************************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include <cuda.h>
+
+__global__ void repeatString(const char* d_in, char* d_out, int len, int N) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int totalLen = len * N;
+    if (idx < totalLen) {
+        // Map idx into the original string
+        d_out[idx] = d_in[idx % len];
+    }
+}
+
+int main(){
+    char h_in[256];
+    int N;
+
+    printf("Enter the string: ");
+    fgets(h_in, 256, stdin);
+    h_in[strcspn(h_in, "\n")] = 0;
+
+    printf("Enter N: ");
+    scanf("%d", &N);
+
+    int len = strlen(h_in);
+    int totalLen = len * N;
+
+    // Allocate device memory
+    char *d_in, *d_out;
+    cudaMalloc((void**)&d_in,  len      * sizeof(char));
+    cudaMalloc((void**)&d_out, totalLen * sizeof(char));
+
+    // Copy input string to device
+    cudaMemcpy(d_in, h_in, len * sizeof(char), cudaMemcpyHostToDevice);
+
+    // Kernel launch
+    int blockSize = 256;
+    int gridSize  = (totalLen + blockSize - 1) / blockSize;
+    repeatString<<<gridSize, blockSize>>>(d_in, d_out, len, N);
+
+    // Copy result back
+    char *h_out = (char*)malloc((totalLen + 1) * sizeof(char));
+    cudaMemcpy(h_out, d_out, totalLen * sizeof(char), cudaMemcpyDeviceToHost);
+
+    h_out[totalLen] = '\0';
+    printf("Output: %s\n", h_out);
+
+    // Free memory
+    cudaFree(d_in);
+    cudaFree(d_out);
+    free(h_out);
+
+    return 0;
+}
+
+5. 
+/***************************************************************************
+ * File: replicate_chars_incrementally.cu
+ * Compile: nvcc replicate_chars_incrementally.cu -o replicate_chars_incrementally
+ ***************************************************************************/
+
+#include <stdio.h>
+#include <string.h>
+#include <cuda.h>
+
+__global__ void replicateChars(const char* d_in, char* d_out,
+                               const int* d_offsets, int n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n) {
+        char c = d_in[idx];
+        int startPos = d_offsets[idx]; // Where this block begins
+        int count    = idx + 1;        // How many times to repeat
+
+        for (int j = 0; j < count; j++) {
+            d_out[startPos + j] = c;
+        }
+    }
+}
+
+int main(){
+    char h_in[256];
+    printf("Enter the string: ");
+    fgets(h_in, 256, stdin);
+    h_in[strcspn(h_in, "\n")] = 0;
+
+    int n = strlen(h_in);
+
+    // Compute offsets on CPU
+    // offset[i] = sum of (k+1) for k from 0..(i-1)
+    // This tells us where the i-th character's block starts.
+    int *h_offsets = (int*)malloc(n * sizeof(int));
+    int totalLen = 0;
+    for (int i = 0; i < n; i++) {
+        h_offsets[i] = totalLen;
+        totalLen += (i + 1);
+    }
+
+    // Allocate device memory
+    char *d_in, *d_out;
+    int  *d_offsets;
+    cudaMalloc((void**)&d_in,      n        * sizeof(char));
+    cudaMalloc((void**)&d_out,     totalLen * sizeof(char));
+    cudaMalloc((void**)&d_offsets, n        * sizeof(int));
+
+    // Copy to device
+    cudaMemcpy(d_in,     h_in,      n        * sizeof(char), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_offsets,h_offsets, n        * sizeof(int),  cudaMemcpyHostToDevice);
+
+    // Kernel launch
+    int blockSize = 256;
+    int gridSize  = (n + blockSize - 1) / blockSize;
+    replicateChars<<<gridSize, blockSize>>>(d_in, d_out, d_offsets, n);
+
+    // Copy back
+    char *h_out = (char*)malloc((totalLen + 1) * sizeof(char));
+    cudaMemcpy(h_out, d_out, totalLen * sizeof(char), cudaMemcpyDeviceToHost);
+    h_out[totalLen] = '\0';
+
+    printf("Output T: %s\n", h_out);
+
+    // Free memory
+    cudaFree(d_in);
+    cudaFree(d_out);
+    cudaFree(d_offsets);
+    free(h_offsets);
+    free(h_out);
+
+    return 0;
+}
+

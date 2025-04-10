@@ -1,0 +1,195 @@
+pcap lab4 
+
+q1.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <mpi.h>
+int factorial(int n) {
+    int fact = 1;
+    for (int i = 1; i <= n; i++) {
+        fact *= i;
+    }
+    return fact;
+}
+int main(int argc, char *argv[]) {
+    int rank, size, N, sum = 0;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    if (argc != 2) {
+        if (rank == 0) {
+            printf("Usage: %s <N>\n", argv[0]);
+        }
+        MPI_Finalize();
+        return 0;
+    }
+    N = atoi(argv[1]);
+    if (N <= 0) {
+        if (rank == 0) {
+            printf("Error: N must be greater than 0.\n");
+        }
+        MPI_Finalize();
+        return 0;
+    }
+    int local_sum = 0;
+    for (int i = rank + 1; i <= N; i += size) {
+        local_sum += factorial(i);
+    }
+    MPI_Reduce(&local_sum, &sum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+    if (rank == 0) {
+        printf("The sum of factorials is: %d\n", sum);
+    }
+    MPI_Finalize();
+    return 0;
+}
+
+q2.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <mpi.h>
+int main(int argc, char *argv[]) {
+    int rank, size, matrix[3][3], element, count = 0, local_count = 0;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    if (rank == 0) {
+        printf("Enter a 3x3 matrix:\n");
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                scanf("%d", &matrix[i][j]);
+            }
+        }
+        printf("Enter element to search: ");
+        scanf("%d", &element);
+    }
+    MPI_Bcast(&matrix, 9, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&element, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    int rows_per_process = 3 / size;
+    int start_row = rank * rows_per_process;
+    int end_row = (rank + 1) * rows_per_process;
+    for (int i = start_row; i < end_row; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (matrix[i][j] == element) {
+                local_count++;
+            }
+        }
+    }
+    MPI_Reduce(&local_count, &count, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+        printf("The element %d appears %d times in the matrix.\n", element, count);
+    }
+    MPI_Finalize();
+    return 0;
+}
+
+q3.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <mpi.h>
+int main(int argc, char *argv[]) {
+    int rank, size, matrix[4][4];
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    if (rank == 0) {
+        printf("Enter a 4x4 matrix:\n");
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                scanf("%d", &matrix[i][j]);
+            }
+        }
+    }
+    MPI_Bcast(&matrix, 16, MPI_INT, 0, MPI_COMM_WORLD);
+    int row = rank;
+    if (row < 4) {
+        for (int i = 0; i < 4; i++) {
+            printf("%d ", matrix[row][i]);
+        }
+        printf("\n");
+    }
+    MPI_Finalize();
+    return 0;
+}
+
+q4.
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <mpi.h>
+#include <string.h>
+int main(int argc, char *argv[]) {
+    int rank, size, N;
+    char word[100];
+    MPI_Init(&argc, &argv);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+    if (rank == 0) {
+        printf("Enter a word: ");
+        scanf("%s", word);
+        N = strlen(word);
+    }
+    MPI_Bcast(&N, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(word, N + 1, MPI_CHAR, 0, MPI_COMM_WORLD);
+    if (rank < N) {
+        for (int i = 0; i <= rank; i++) {
+            printf("%c", word[i]);
+        }
+        for (int i = 0; i < N - rank - 1; i++) {
+            printf("%c", word[N - 1]);
+        }
+    }
+    MPI_Finalize();
+    return 0;
+}
+
+sample input output
+
+q1.
+
+mpicc factorial_sum.c -o factorial_sum
+mpirun -np 4 ./factorial_sum 5
+
+The sum of factorials is: 153
+
+q2.
+
+mpicc matrix_search.c -o matrix_search
+mpirun -np 3 ./matrix_search
+
+Enter a 3x3 matrix:
+1 2 3
+4 5 6
+7 8 9
+Enter element to search: 2
+The element 2 appears 1 times in the matrix.
+
+q3.
+
+mpicc matrix_display.c -o matrix_display
+mpirun -np 4 ./matrix_display
+
+Enter a 4x4 matrix:
+1  2  3  4
+1  2  3  1
+1  1  1  1
+2  1  2  1
+
+1 2 3 4
+2 4 6 5
+3 5 7 6
+5 6 9 7
+
+q4.
+
+mpicc word_transform.c -o word_transform
+mpirun -np 4 ./word_transform
+
+Enter a word: PCAP
+PCCAAAPPPP
+
+
+
